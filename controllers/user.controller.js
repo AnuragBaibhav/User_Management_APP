@@ -1,95 +1,107 @@
-import { users } from '../data/users.js';
+import { createUser as createUserService } from '../services/user.service.js';
+import { deleteUser as deleteUserService } from '../services/user.service.js';
+import { updateUser as updateUserService } from '../services/user.service.js';
+import { getUserById as getUserByIdService } from '../services/user.service.js';
+import { getAllUsers } from '../services/user.service.js';
+
 export const getUsers = (req, res) => {
+  console.log('Fetching all users');
+  const allUsers = getAllUsers();
+  res.status(200).json({
+    success: true,
+    count: allUsers.length,
+    data: allUsers,
+  });
+};
+
+export const getUserById = (req, res) => {
+  console.log('Fetching user by ID:', req.params.id);
+  try {
+    const { id } = req.params;
+    const user = getUserByIdService(id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
     res.status(200).json({
-        success: true,
-        count: users.length,
-        data: users
+      success: true,
+      data: user,
     });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+    });
+  }
 };
 
 export const createUser = (req, res) => {
-    try{
-        const { name, email } = req.body;
-        //validation
-        if(!name || !email){
-            return res.status(400).json({
-                success: false,
-                message: "Name and Email are required"
-            });
-    }
-
-    const newuser={
-        id: Date.now(),
-        name,
-        email   
-    };
-    users.push(newuser);
-
+  console.log('Creating user with data:', req.body);
+  try {
+    const newuser = createUserService(req.body.name, req.body.email);
     res.status(201).json({
-        success: true,
-        data: newuser
+      success: true,
+      data: newuser,
     });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Server Error"
-        });
-    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+    });
+  }
 };
 
 export const updateUser = (req, res) => {
-    try{
-        const id=req.params.id;
-        const { name, email } = req.body;
+  console.log('Updating user with ID:', req.params.id, 'Data:', req.body);
+  try {
+    const id = req.params.id;
+    const { name, email } = req.body;
 
-        const user = users.find((u) => u.id === parseInt(id));
-        if(!user){
-            return res.status(404).json({
-                success: false,
-                message: "User not found"
-            });
-        }
-
-        //update user
-        if(name) user.name = name;
-        if(email) user.email = email;
-
-        res.status(200).json({
-            success: true,
-            data: user
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Server Error"
-        });
+    const user = updateUserService(id, name, email);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
     }
+
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+    });
+  }
 };
 
 export const deleteUser = (req, res) => {
-    try{
-        const id=req.params.id;
+  console.log('Deleting user with ID:', req.params.id);
+  try {
+    const id = req.params.id;
 
-        //const userIndex = users.findIndex((u) => u.id === parseInt(id));
-        const user = users.find((u) => u.id === parseInt(id));
-        if(!user){
-            return res.status(404).json({
-                success: false,
-                message: "User not found"
-            });
-        }
-
-        //users.splice(userIndex, 1);//parmaters
-        users = users.filter((u) => u.id !== parseInt(id));//why parseInt?ans:-
-
-        res.status(200).json({
-            success: true,
-            message: "User deleted successfully"
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Server Error"
-        });
+    const deleted = deleteUserService(id);
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
     }
+
+    res.status(200).json({
+      success: true,
+      message: 'User deleted successfully',
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+    });
+  }
 };
