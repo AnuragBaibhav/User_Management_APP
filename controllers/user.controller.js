@@ -1,73 +1,87 @@
-import { createUser as createUserService } from '../services/user.service.js';
-import { deleteUser as deleteUserService } from '../services/user.service.js';
-import { updateUser as updateUserService } from '../services/user.service.js';
-import { getUserById as getUserByIdService } from '../services/user.service.js';
-import { getAllUsers } from '../services/user.service.js';
+import { users } from '../data/users.js';
 
-export const getUsers = (req, res) => {
-  console.log('Fetching all users');
-  const allUsers = getAllUsers();
+import {
+  createUserService,
+  getUsersService,
+  updateUserService,
+  getUsersServiceisActive,
+  findByEmailAndUpdate,
+} from '../services/user.service.js';
+
+export const getUsers = async (req, res) => {
+  // const {token} = req.headers
+  // console.log("req",req);
+  // console.log("token",token)
+
+  const users = await getUsersService();
+  console.log('getting users', users, typeof users);
   res.status(200).json({
     success: true,
-    count: allUsers.length,
-    data: allUsers,
+    count: users.length,
+    data: users,
   });
 };
 
-export const getUserById = (req, res) => {
-  console.log('Fetching user by ID:', req.params.id);
-  try {
-    const { id } = req.params;
-    const user = getUserByIdService(id);
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found',
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: user,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server Error',
-    });
-  }
+export const isActive = async (req, res) => {
+  console.log('isActive in controller');
+  const users = await getUsersServiceisActive();
+  res.status(200).json({
+    success: true,
+    count: users.length,
+    data: users,
+  });
 };
 
-export const createUser = (req, res) => {
-  console.log('Creating user with data:', req.body);
-  try {
-    const newuser = createUserService(req.body.name, req.body.email);
-    res.status(201).json({
-      success: true,
-      data: newuser,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server Error',
-    });
-  }
-};
+// export const createUser = (req, res) => {
+//   try {
+//     const { name, email } = req.body;
+
+//     // // VALIDATION
+//     // if (!name || !email) {
+//     //   return res.status(400).json({
+//     //     success: false,
+//     //     message: "Name and email are required"
+//     //   });
+//     // }
+
+//     const newUser = {
+//       id: Date.now().toString(),
+//       name,
+//       email
+//     };
+
+//     users.push(newUser);
+
+//     res.status(201).json({
+//       success: true,
+//       data: newUser
+//     });
+
+//   } catch (error) {
+//     res.status(500).json({
+//       success: false,
+//       message: error.message
+//     });
+//   }
+// };
 
 export const updateUser = (req, res) => {
-  console.log('Updating user with ID:', req.params.id, 'Data:', req.body);
   try {
-    const id = req.params.id;
+    const { id } = req.params;
     const { name, email } = req.body;
 
-    const user = updateUserService(id, name, email);
+    const user = users.find(u => u.id === id);
+
     if (!user) {
       return res.status(404).json({
         success: false,
         message: 'User not found',
       });
     }
+
+    // PARTIAL UPDATE
+    if (name) user.name = name;
+    if (email) user.email = email;
 
     res.status(200).json({
       success: true,
@@ -76,32 +90,77 @@ export const updateUser = (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Server Error',
+      message: error.message,
     });
   }
 };
 
+//service code
 export const deleteUser = (req, res) => {
-  console.log('Deleting user with ID:', req.params.id);
   try {
-    const id = req.params.id;
+    const { id } = req.params;
 
-    const deleted = deleteUserService(id);
-    if (!deleted) {
+    const index = users.findIndex(u => u.id === id);
+
+    if (index === -1) {
       return res.status(404).json({
         success: false,
         message: 'User not found',
       });
     }
 
-    res.status(200).json({
-      success: true,
-      message: 'User deleted successfully',
-    });
+    users.splice(index, 1);
+
+    res.status(204).send();
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Server Error',
+      message: error.message,
     });
   }
+};
+
+// SERVICE LOGIC
+
+// export const deleteUser = (req, res) => {
+//   const deleted = deleteUserService(req.params.id);
+
+//   if (!deleted) {
+//     return res.status(404).json({
+//       success: false,
+//       message: "User not found"
+//     });
+//   }
+
+//   res.status(204).send();
+// };
+
+export const createUser = async (req, res) => {
+  const { email, name, password, role } = req.body;
+
+  const userBody = await createUserService(name, email, password, role);
+
+  res.status(201).json({
+    success: true,
+    data: userBody,
+  });
+};
+
+export const patchUser = async (req, res) => {
+  const user = await updateUserService(req.params.id, req.body);
+
+  res.json({
+    success: true,
+    data: user,
+  });
+};
+export const updatebyEmail = async (req, res) => {
+  const { email, updateUser } = req.body;
+
+  const user = await findByEmailAndUpdate(email, updateUser);
+
+  res.json({
+    success: true,
+    data: user,
+  });
 };
